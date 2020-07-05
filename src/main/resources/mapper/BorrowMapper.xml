@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zys.bookshelf.manager.mapper.BorrowMapper">
+  <sql id="borrowColumns">
+    bo.id,
+    bo.book_code,
+    bo.reader_code,
+    bo.prop_no,
+    bo.call_no,
+    bo.status,
+    bo.borrow_date,
+    bo.return_date,
+    bo.location_no,
+    u.name AS uName,
+    b.name AS bName,
+    b.author AS bAuthor,
+    b.publisher AS bPublisher,
+    d.value AS statusValue,
+    l.name as lName,
+    l.short_name
+  </sql>
+  <resultMap id="BorrowResultMap" type="com.zys.bookshelf.manager.entity.Borrow">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="prop_no" jdbcType="VARCHAR" property="propNo"/>
+    <result column="call_no" jdbcType="VARCHAR" property="callNo"/>
+    <result column="borrow_date" jdbcType="DATE" property="borrowDate" />
+    <result column="return_date" jdbcType="DATE" property="returnDate" />
+    <association property="reader" javaType="User">
+      <result column="reader_code" property="code"/>
+      <result column="uName" property="name"/>
+    </association>
+    <association property="book" javaType="Book">
+      <result column="book_code" property="code"/>
+      <result column="bName" property="name"/>
+      <result column="bAuthor" property="author"/>
+      <result column="bPublisher" property="publisher"/>
+    </association>
+    <association property="status" javaType="Dictionary">
+      <id column="status" property="id"/>
+      <result column="statusValue" property="value"/>
+    </association>
+    <association property="location" javaType="Location">
+      <result column="location_no" jdbcType="VARCHAR" property="code"/>
+      <result column="lName" jdbcType="VARCHAR" property="name" />
+      <result column="short_name" jdbcType="VARCHAR" property="shortName" />
+    </association>
+  </resultMap>
+  <select id="selectByCondition" parameterType="Borrow" resultMap="BorrowResultMap">
+    SELECT
+    <include refid="borrowColumns"></include>
+    FROM borrow AS bo
+    LEFT JOIN user AS u ON bo.reader_code = u.code
+    LEFT JOIN book AS b ON bo.book_code = b.bcode
+    LEFT JOIN dictionary AS d ON bo.status = d.id
+    left JOIN category AS c ON left(bo.call_no,1) = c.code
+    LEFT JOIN location AS l ON bo.location_no = l.code
+    <where>
+      <if test="borrow.reader != null">
+        <if test="borrow.reader.code != null and borrow.reader.code != ''">
+          AND u.code = #{borrow.reader.code}
+        </if>
+        <if test="borrow.reader.name != null and borrow.reader.name != ''">
+          AND u.name LIKE CONCAT('%',#{borrow.reader.name},'%')
+        </if>
+      </if>
+      <if test="borrow.book != null ">
+        <if test="borrow.book.code != null and borrow.book.code != ''">
+          AND b.bcode = #{borrow.book.code}
+        </if>
+        <if test="borrow.book.name != null and borrow.book.name != ''">
+          AND b.name LIKE CONCAT('%',#{borrow.book.name},'%')
+        </if>
+      </if>
+      <if test="borrow.callNo != null and borrow.callNo != ''">
+        AND bo.call_no = #{borrow.callNo}
+      </if>
+      <if test="borrow.status != null">
+        AND bo.status = #{borrow.status.id}
+      </if>
+    </where>
+  </select>
+
+  <insert id="insertBorrow" parameterType="Borrow">
+    INSERT INTO borrow (
+      `prop_no`,
+      `borrow_date`,
+      `book_code`,
+      `call_no`,
+      `reader_code`,
+      `return_date`,
+      `status`,
+      `location_no`
+    )
+    VALUES
+    (
+      #{borrow.propNo},
+      #{borrow.borrowDate},
+      #{borrow.book.code},
+      #{borrow.callNo},
+      #{borrow.reader.code},
+      #{borrow.returnDate},
+      #{borrow.status.id},
+      #{borrow.location.code}
+    )
+  </insert>
+
+  <update id="updateBorrow" parameterType="Borrow">
+    UPDATE
+      borrow
+    SET
+      `prop_no` = #{borrow.propNo},
+      `borrow_date` = #{borrow.borrowDate},
+      `book_code` = #{borrow.book.code},
+      `call_no` = #{borrow.callNo},
+      `reader_code` = #{borrow.reader.code},
+      `return_date` = #{borrow.returnDate},
+      `status` = #{borrow.status.id},
+      `location_no` = #{borrow.location.code}
+    WHERE `id` = #{borrow.id}
+  </update>
+  <insert id="insertBorrows">
+    INSERT INTO borrow (
+      `prop_no`,
+      `borrow_date`,
+      `book_code`,
+      `call_no`,
+      `reader_code`,
+      `return_date`,
+      `status`,
+      `location_no`
+    )
+    VALUES
+    <foreach collection="borrows" item="borr" separator=",">
+      (#{borr.propNo},#{borr.borrowDate},#{borr.book.code},#{borr.callNo},#{borr.reader.code},#{borr.returnDate},#{borr.status.id},#{borr.location.code})
+    </foreach>
+  </insert>
+
+  <select id="getBorrowCountByYear" parameterType="String" resultType="com.zys.bookshelf.manager.dto.CategoryCountDTO">
+    SELECT c.code AS 'catCode',c.`name` AS 'category', COUNT(bo.id) AS 'count'
+    FROM category AS c
+    LEFT JOIN borrow AS bo ON LEFT(bo.call_no,1) = c.code
+    WHERE YEAR(bo.borrow_date) = #{year}
+    GROUP BY c.`id`
+    ORDER BY c.id
+  </select>
+</mapper>

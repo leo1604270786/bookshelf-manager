@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zys.bookshelf.manager.mapper.BookshelfMapper">
+  <sql id="bookshelfColumns">
+    bs.id,
+    bs.code,
+    bs.label_begin,
+    bs.label_end,
+    bs.place,
+    bs.init_capacity,
+    bs.left_capacity,
+    bs.x,
+    bs.y,
+    bs.z,
+    bs.category_id,
+    c.`code` AS cCode,
+    c.`name` AS cName,
+    bs.update_date
+  </sql>
+  <resultMap id="BookshelfResultMap" type="Bookshelf">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="code" jdbcType="VARCHAR" property="code" />
+    <result column="label_begin" jdbcType="VARCHAR" property="labelBegin" />
+    <result column="label_end" jdbcType="VARCHAR" property="labelEnd" />
+    <result column="place" jdbcType="VARCHAR" property="place" />
+    <result column="init_capacity" jdbcType="INTEGER" property="initCapacity" />
+    <result column="left_capacity" jdbcType="INTEGER" property="leftCapacity" />
+    <result column="x" jdbcType="INTEGER" property="x" />
+    <result column="y" jdbcType="INTEGER" property="y" />
+    <result column="z" jdbcType="INTEGER" property="z" />
+    <result column="update_date" jdbcType="DATE" property="updateDate" />
+    <association property="category" javaType="Category">
+      <id column="category_id" property="id"/>
+      <result column="cCode" property="code"/>
+      <result column="cName" property="name"/>
+    </association>
+  </resultMap>
+
+  <select id="selectAll" resultMap="BookshelfResultMap">
+    SELECT
+        <include refid="bookshelfColumns"></include>
+    FROM bookshelf AS bs
+    LEFT JOIN category AS c ON bs.category_id = c.id
+  </select>
+
+  <insert id="insertBookshelf" parameterType="Bookshelf">
+    INSERT INTO `bookshelf` (
+    `code`,
+    `label_begin`,
+    `label_end`,
+    `place`,
+    `init_capacity`,
+    `left_capacity`,
+    `x`,
+    `y`,
+    `z`,
+    `category_id`,
+    `update_date`
+  )
+  VALUES
+    (
+      #{code},
+      #{labelBegin},
+      #{labelEnd},
+      #{place},
+      #{initCapacity},
+      #{leftCapacity},
+      #{x},
+      #{y},
+      #{z},
+      #{category.id},
+      DATE_FORMAT(NOW(),'%Y-%m-%d')
+    )
+  </insert>
+
+  <insert id="insertBookshelves">
+    INSERT INTO `bookshelf` (
+    `code`,
+    `label_begin`,
+    `label_end`,
+    `place`,
+    `init_capacity`,
+    `left_capacity`,
+    `x`,
+    `y`,
+    `z`,
+    `category_id`,
+    `update_date`
+  )
+  VALUES
+  <foreach collection="bookshelves" item="bookshelf" separator=",">
+    (#{bookshelf.code},#{bookshelf.labelBegin},#{bookshelf.labelEnd},#{bookshelf.place}, #{bookshelf.initCapacity},#{bookshelf.leftCapacity},
+    #{bookshelf.x},#{bookshelf.y},#{bookshelf.z},#{bookshelf.category.id},#{bookshelf.updateDate})
+  </foreach>
+  </insert>
+
+  <update id="updateBookshelf" parameterType="Bookshelf">
+    UPDATE
+      `bookshelf`
+    SET
+      `label_begin` = #{labelBegin},
+      `label_end` = #{labelEnd},
+      `place` = #{place},
+      `init_capacity` = #{initCapacity},
+      `left_capacity` = #{leftCapacity},
+      `x` = #{x},
+      `y` = #{y},
+      `z` = #{z},
+      `category_id` = #{category.id},
+      `update_date` = DATE_FORMAT(NOW(),'%Y-%m-%d')
+    WHERE `id` = #{id}
+  </update>
+  <select id="getAllPlace" resultType="String">
+    SELECT
+      DISTINCT bs.place
+    FROM bookshelf AS bs
+  </select>
+
+  <select id="getByPlace" resultMap="BookshelfResultMap">
+    SELECT
+      <include refid="bookshelfColumns"/>
+    FROM
+      `bookshelf` AS bs
+    LEFT JOIN category AS c ON bs.category_id = c.id
+    WHERE place = #{place}
+  </select>
+  <select id="getBookshelfCount" resultType="com.zys.bookshelf.manager.dto.CategoryCountDTO">
+    SELECT c.name AS category, SUM(bs.init_capacity - left_capacity) AS count
+    FROM bookshelf AS bs
+    LEFT JOIN category AS c ON bs.category_id = c.id
+    GROUP BY c.id
+  </select>
+
+  <select id="getBookshelfByCategory" resultType="String" parameterType="String">
+    SELECT
+    bs.code
+    FROM bookshelf AS bs
+    LEFT JOIN category AS c ON bs.category_id = c.id
+    WHERE c.code = #{catCode}
+  </select>
+
+  <select id="getByBookCallNo" resultMap="BookshelfResultMap">
+    SELECT
+    <include refid="bookshelfColumns"></include>
+    FROM bookshelf AS bs
+    LEFT JOIN category AS c ON bs.category_id = c.id
+    WHERE
+    SUBSTRING(bs.label_begin,1,1) = SUBSTRING(#{callNo},1,1)
+    AND
+    (
+    CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(#{callNo},'/',1),'.',1),'-',1),2) AS SIGNED)
+    BETWEEN CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(label_begin,'/',1),'.',1),'-',1),2) AS SIGNED)
+    AND CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(label_end,'/',1),'.',1),'-',1),2) AS SIGNED)
+    )
+    LIMIT 0,1
+  </select>
+</mapper>

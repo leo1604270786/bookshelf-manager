@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zys.bookshelf.manager.mapper.UserMapper">
+  <!-- User所有列 -->
+  <sql id="userColumns">
+    u.id,
+    u.code,
+    u.name,
+    u.gender,
+    u.password,
+    u.phone,
+    u.email,
+    u.idcard,
+    u.role,
+    u.registry_date,
+    d.type AS roleType,
+    d.value AS roleValue
+  </sql>
+  <!--  结果集映射-->
+  <resultMap id="UserResultMap" type="User">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="code" jdbcType="VARCHAR" property="code" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="gender" jdbcType="CHAR" property="gender" />
+    <result column="password" jdbcType="VARCHAR" property="password" />
+    <result column="phone" jdbcType="CHAR" property="phone" />
+    <result column="email" jdbcType="VARCHAR" property="email" />
+    <result column="idcard" jdbcType="VARCHAR" property="idcard" />
+    <result column="registry_date" jdbcType="DATE" property="registryDate" />
+    <association property="role" column="role" javaType="Dictionary">
+      <id column="role" property="id"/>
+      <result column="roleType" property="type"/>
+      <result column="roleValue" property="value"/>
+    </association>
+  </resultMap>
+  <select id="selectByCondition" resultMap="UserResultMap" parameterType="User">
+    SELECT
+    <include refid="userColumns"/>
+    FROM user AS u
+    LEFT JOIN dictionary AS d ON u.role = d.id
+    <where>
+      <if test="user != null ">
+        <if test="user.name != null and user.name != ''">
+          AND u.name LIKE CONCAT('%',#{user.name},'%')
+        </if>
+        <if test="user.code != null and user.code != ''">
+          AND u.code = #{user.code}
+        </if>
+        <if test="user.gender != null and user.gender != ''">
+          AND u.gender = #{user.gender}
+        </if>
+        <if test="user.role != null and user.role.id != ''">
+          AND u.role = #{user.role.id}
+        </if>
+      </if>
+    </where>
+  </select>
+  <insert id="insertUser" parameterType="User">
+    INSERT INTO `user` (
+      `code`,
+      `name`,
+      `gender`,
+      `password`,
+      `phone`,
+      `email`,
+      `idcard`,
+      `role`,
+      `registry_date`
+    )
+    VALUES
+      (
+        #{user.code},
+        #{user.name},
+        #{user.gender},
+        #{user.password},
+        #{user.phone},
+        #{user.email},
+        #{user.idcard},
+        #{user.role.id},
+        #{user.registryDate}
+      )
+  </insert>
+  <update id="updateUser" parameterType="User">
+    UPDATE
+      `user`
+    SET
+      `code` = #{user.code},
+      `name` = #{user.name},
+      `gender` = #{user.gender},
+      `phone` = #{user.phone},
+      `email` = #{user.email},
+      `idcard` = #{user.idcard},
+      `role` = #{user.role.id}
+    WHERE `id` = #{user.id}
+  </update>
+  <update id="updateBaseUser" parameterType="com.zys.bookshelf.manager.dto.UserDTO">
+    UPDATE
+      `user`
+    SET
+      `name` = #{user.name},
+      `gender` = #{user.gender},
+      `phone` = #{user.phone},
+      `email` = #{user.email},
+      `idcard` = #{user.idcard}
+    WHERE `id` = #{user.id}
+  </update>
+  <select id="selectAllUsers" resultMap="UserResultMap">
+    SELECT
+    <include refid="userColumns"/>
+    FROM user AS u
+    LEFT JOIN dictionary AS d ON u.role = d.id
+    LIMIT 0, 65000
+  </select>
+  <insert id="insertUsers">
+    INSERT INTO user (
+    `code`,
+    `name`,
+    `gender`,
+    `password`,
+    `phone`,
+    `email`,
+    `idcard`,
+    `role`,
+    `registry_date`
+    )
+    VALUES
+    <foreach collection="users" item="user" separator=",">
+      (#{user.code},#{user.name},#{user.gender},#{user.password},#{user.phone},#{user.email},#{user.idcard},
+      #{user.role.id},#{user.registryDate}
+      )
+    </foreach>
+  </insert>
+  <select id="getByCode" resultMap="UserResultMap">
+    SELECT
+    <include refid="userColumns"></include>
+    FROM user AS u
+    LEFT JOIN dictionary AS d ON u.role = d.id
+    WHERE u.code = #{code}
+  </select>
+  <update id="resetPwd">
+    UPDATE
+      user
+    SET
+      password = #{password}
+    WHERE id = #{id}
+  </update>
+  <select id="getPanelValues" resultType="com.zys.bookshelf.manager.dto.PanelDTO">
+    SELECT
+    (SELECT count(bi.id) FROM bookitems AS bi) AS 'bookCount',
+    (SELECT COUNT(u.id) FROM USER AS u) AS 'userCount',
+    (SELECT COUNT(bs.id) FROM bookshelf AS bs) AS 'bookshelfCount',
+    (SELECT COUNT(bo.id) FROM borrow AS bo) AS 'borrowCount'
+  </select>
+</mapper>

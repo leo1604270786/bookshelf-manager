@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zys.bookshelf.manager.mapper.LocationMapper">
+    <resultMap id="BaseResultMap" type="Location">
+        <id column="id" jdbcType="INTEGER" property="id" />
+        <result column="code" jdbcType="CHAR" property="code" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="short_name" jdbcType="VARCHAR" property="shortName" />
+        <result column="dept" jdbcType="VARCHAR" property="dept" />
+        <result column="reg_date" jdbcType="DATE" property="regDate" />
+        <result column="upt_date" jdbcType="DATE" property="uptDate" />
+    </resultMap>
+</mapper>

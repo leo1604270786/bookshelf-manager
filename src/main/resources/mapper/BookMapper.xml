@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zys.bookshelf.manager.mapper.BookMapper">
+  <!--  所有列-->
+  <sql id="bookColumns">
+    b.id,
+    b.bcode,
+    b.call_no,
+    b.name,
+    b.author,
+    b.isbn,
+    b.publisher,
+    b.publish_year,
+    c.id as cId,
+    c.code as cCode,
+    c.name as cName
+  </sql>
+  <!--  结果集映射-->
+  <resultMap id="BookResultMap" type="Book">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="bcode" jdbcType="VARCHAR" property="code" />
+    <result column="call_no" jdbcType="VARCHAR" property="callNo" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="author" jdbcType="VARCHAR" property="author" />
+    <result column="isbn" jdbcType="VARCHAR" property="isbn" />
+    <result column="publisher" jdbcType="VARCHAR" property="publisher" />
+    <result column="publish_year" jdbcType="VARCHAR" property="publishYear" />
+    <association property="category" javaType="Category">
+      <id property="id" column="cId"/>
+      <result property="code" column="cCode"/>
+      <result property="name" column="cName"/>
+    </association>
+  </resultMap>
+
+  <select id="selectByCondition" resultMap="BookResultMap" parameterType="Book">
+    SELECT
+    <include refid="bookColumns"></include>
+    FROM book AS b
+    LEFT JOIN category AS c ON left(b.call_no,1) = c.code
+    <where>
+      <if test="book.name != null and book.name != ''">
+        AND b.name LIKE CONCAT('%',#{book.name},'%')
+      </if>
+      <if test="book.code != null and book.code != ''">
+        AND b.bcode = #{book.code}
+      </if>
+      <if test="book.callNo != null and book.callNo != ''">
+        AND b.call_no = #{book.callNo}
+      </if>
+      <if test="book.category != null and book.category.code != ''">
+        AND left(b.call_no,1) = #{book.category.code}
+      </if>
+      <if test="book.author != null and book.author != ''">
+        AND b.author LIKE CONCAT('%',#{book.author},'%')
+      </if>
+      <if test="book.publisher != null and book.publisher != ''">
+        AND b.publisher LIKE CONCAT('%',#{book.publisher},'%')
+      </if>
+    </where>
+  </select>
+
+  <insert id="insertBook" parameterType="Book">
+    INSERT INTO book (
+    `bcode`,
+    `call_no`,
+    `name`,
+    `author`,
+    `publisher`,
+    `isbn`,
+    `publish_year`
+    )
+    VALUES
+      (
+        #{book.code},
+        #{book.callNo},
+        #{book.name},
+        #{book.author},
+        #{book.publisher},
+        #{book.isbn},
+        #{book.publishYear}
+      )
+  </insert>
+
+  <update id="updateBook" parameterType="Book">
+    UPDATE
+      book
+    SET
+      `name` = #{book.name},
+      `author` = #{book.author},
+      `call_no` = #{book.callNo},
+      `isbn` = #{book.isbn},
+      `publisher` = #{book.publisher},
+      `publish_year` = #{book.publishYear}
+    WHERE `id` = #{book.id}
+  </update>
+  <select id="selectAllBooks" resultMap="BookResultMap">
+    SELECT
+    <include refid="bookColumns"></include>
+    FROM book AS b
+    LEFT JOIN category AS c ON left(b.call_no,1) = c.code
+    LIMIT 0, 65000
+  </select>
+  <insert id="insertBooks">
+    INSERT INTO book (
+    `bcode`,
+    `call_no`,
+    `name`,
+    `author`,
+    `publisher`,
+    `isbn`,
+    `publish_year`
+    )
+    VALUES
+    <foreach collection="books" item="book" separator=",">
+      (#{book.code},#{book.callNo},#{book.name},#{book.author},#{book.publisher},#{book.isbn},#{book.publishYear}
+      )
+    </foreach>
+  </insert>
+  <select id="getByCode" resultType="Book">
+    SELECT
+    <include refid="bookColumns"></include>
+    FROM book AS b
+    WHERE b.bcode = #{code}
+  </select>
+
+  <select id="getCountByCategory" resultType="com.zys.bookshelf.manager.dto.CategoryCountDTO">
+    SELECT c.`name` AS 'category', COUNT(bi.id) AS 'count'
+    FROM category AS c
+    LEFT JOIN bookitems AS bi ON LEFT(bi.call_no,1) = c.code
+    GROUP BY c.`id`
+    ORDER BY c.id
+  </select>
+
+  <select id="getBoCountByCategory" resultType="com.zys.bookshelf.manager.dto.CategoryCountDTO">
+    SELECT c.code AS 'catCode', c.`name` AS 'category', COUNT(bo.id) AS 'borrowTimes'
+    FROM category AS c
+    LEFT JOIN borrow AS bo ON LEFT(bo.call_no,1) = c.code
+    GROUP BY c.`id`
+    ORDER BY c.id
+  </select>
+
+  <select id="getAllYears" resultType="String">
+    SELECT YEAR(bi.in_date)
+    FROM
+    bookitems AS bi
+    GROUP BY YEAR(bi.in_date)
+    ORDER BY YEAR(bi.in_date)
+  </select>
+
+  <select id="getNewBookCountByYear" parameterType="String" resultType="com.zys.bookshelf.manager.dto.CategoryCountDTO">
+    SELECT c.code AS 'catCode',c.`name` AS 'category', COUNT(bi.id) AS 'count'
+    FROM category AS c
+    LEFT JOIN bookitems AS bi ON LEFT(bi.call_no,1) = c.code
+    WHERE YEAR(bi.in_date) = #{year}
+    GROUP BY c.`id`
+    ORDER BY c.id
+  </select>
+</mapper>

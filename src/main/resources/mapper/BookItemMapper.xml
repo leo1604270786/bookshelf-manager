@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zys.bookshelf.manager.mapper.BookItemMapper">
+    <sql id="bookItemColumns">
+      bi.id,
+      bi.book_code,
+      bi.prop_no,
+      bi.price,
+      bi.location_no,
+      bi.call_no,
+      bi.in_date,
+      bi.status,
+      b.name,
+      b.author,
+      b.publisher,
+      b.isbn,
+      b.publish_year,
+      d.value AS statusValue,
+      l.name as lName,
+      l.short_name
+    </sql>
+    <resultMap id="BookItemResultMap" type="BookItem">
+        <id column="id" jdbcType="INTEGER" property="id" />
+        <result column="prop_no" jdbcType="VARCHAR" property="propNo" />
+        <result column="price" jdbcType="DECIMAL" property="price" />
+        <result column="call_no" jdbcType="VARCHAR" property="callNo" />
+        <result column="in_date" jdbcType="DATE" property="inDate"/>
+        <association property="book" column="book_code" javaType="Book">
+            <result column="book_code" property="code"/>
+            <result column="name" property="name"/>
+            <result column="author" property="author"/>
+            <result column="publisher" property="publisher"/>
+            <result column="isbn" property="isbn"/>
+            <result column="publish_year" property="publishYear"/>
+        </association>
+        <association property="status" javaType="Dictionary">
+            <id column="status" property="id"/>
+            <result column="statusValue" property="value"/>
+        </association>
+        <association property="location" javaType="Location">
+            <result column="location_no" jdbcType="VARCHAR" property="code"/>
+            <result column="lName" jdbcType="VARCHAR" property="name" />
+            <result column="short_name" jdbcType="VARCHAR" property="shortName" />
+        </association>
+    </resultMap>
+    <select id="selectByCondition" resultMap="BookItemResultMap" parameterType="BookItem">
+        SELECT
+        <include refid="bookItemColumns"></include>
+        FROM bookitems AS bi
+        LEFT JOIN book as b on bi.book_code = b.bcode
+        left join location as l on bi.location_no = l.code
+        left join dictionary as d on bi.status = d.id
+        <where>
+            <if test="bookitem.book != null">
+                <if test="bookitem.book.name != null and bookitem.book.name != ''">
+                    AND b.name LIKE CONCAT('%',#{bookitem.book.name},'%')
+                </if>
+                <if test="bookitem.book.author != null and bookitem.book.author != ''">
+                    AND b.author LIKE CONCAT('%',#{bookitem.book.author},'%')
+                </if>
+                <if test="bookitem.book.publisher != null and bookitem.book.publisher != ''">
+                    AND b.publisher LIKE CONCAT('%',#{bookitem.book.publisher},'%')
+                </if>
+                <if test="bookitem.book.code != null and bookitem.book.code != ''">
+                    AND b.bcode = #{bookitem.book.code}
+                </if>
+            </if>
+            <if test="bookitem.callNo != null and bookitem.callNo != ''">
+                AND bi.call_no = #{bookitem.callNo}
+            </if>
+            <if test="bookitem.propNo != null and bookitem.propNo != ''">
+                AND bi.prop_no = #{bookitem.propNo}
+            </if>
+        </where>
+    </select>
+
+    <insert id="insertBookItem" parameterType="BookItem">
+        INSERT INTO `bookitems` (
+          `book_code`,
+          `prop_no`,
+          `price`,
+          `location_no`,
+          `call_no`,
+          `in_date`,
+          `status`
+        )
+        VALUES
+          (
+            #{bookitem.book.code},
+            #{bookitem.propNo},
+            #{bookitem.price},
+            #{bookitem.location.code},
+            #{bookitem.callNo},
+            #{bookitem.inDate},
+            #{bookitem.status.id}
+          )
+    </insert>
+
+    <insert id="insertBookItems" parameterType="BookItem">
+        INSERT INTO `bookitems` (
+          `book_code`,
+          `prop_no`,
+          `price`,
+          `location_no`,
+          `call_no`,
+          `in_date`,
+          `status`
+        )
+        VALUES
+        <foreach collection="bookitems" item="bookitem" separator=",">
+            (#{bookitem.book.code},#{bookitem.propNo},#{bookitem.price},#{bookitem.location.code},#{bookitem.callNo},
+            #{bookitem.inDate},#{bookitem.status.id}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateBookItem" parameterType="BookItem">
+        UPDATE
+          `bookitems`
+        SET
+          `book_code` = #{bookitem.book.code},
+          `prop_no` = #{bookitem.propNo},
+          `price` = #{bookitem.price},
+          `location_no` = #{bookitem.location.code},
+          `call_no` = #{bookitem.callNo},
+          `in_date` = #{bookitem.inDate},
+          `status` = #{bookitem.status.id}
+        WHERE `id` = #{bookitem.id}
+    </update>
+
+    <select id="selectAllBookItems" resultMap="BookItemResultMap">
+        SELECT
+        <include refid="bookItemColumns"></include>
+        FROM bookitems AS bi
+        LEFT JOIN book as b on bi.book_code = bi.code
+        left join location as l on bi.location_no = l.code
+        left join dictionary as d on bi.status = d.id
+    </select>
+
+    <select id="getByPropNo" resultMap="BookItemResultMap">
+        SELECT
+        <include refid="bookItemColumns"></include>
+        FROM bookitems AS bi
+        LEFT JOIN book as b on bi.book_code = bi.code
+        left join location as l on bi.location_no = l.code
+        left join dictionary as d on bi.status = d.id
+        where bi.prop_no = #{propNo}
+    </select>
+</mapper>
